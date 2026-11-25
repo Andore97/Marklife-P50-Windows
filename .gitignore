@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# PyInstaller
+/build/
+/dist/
+*.spec.bak
+
+# Generiert vom Build
+chrome/
+chrome-downloads/
+chrome_version.txt
+icon.ico
+*.zip
+*.log
+
+# Chrome-Profil ist userbezogen
+/chrome-profile/*
+!/chrome-profile/.gitkeep
+
+# Temporaere Testartefakte
+_check.js
+parent.log
+
+# Die fertige EXE im Zielrepo darf eingecheckt werden
+*.exe
+!P50_Label_Studio.exe
+*.exe

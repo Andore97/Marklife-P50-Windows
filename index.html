@@ -1,0 +1,1153 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>P50 Web Label Studio</title>
+<style>
+  :root { color-scheme: dark; font-family: Segoe UI, system-ui, sans-serif; }
+  body { max-width: 1280px; margin: 20px auto; padding: 0 18px; }
+  h1 { font-size: 21px; margin: 0 0 4px; }
+  .sub { color: #9aa4b2; font-size: 12px; margin-bottom: 16px; }
+  .grid { display: grid; grid-template-columns: 280px minmax(400px, 1fr) 250px; gap: 14px; align-items: start; }
+  .card { background: #151a22; border: 1px solid #2a3240; border-radius: 10px; padding: 14px; }
+  .card h2 { font-size: 13px; margin: 0 0 8px; color: #dbe5f0; border-bottom: 1px solid #2a3240; padding-bottom: 7px; }
+  label { display: block; font-size: 12px; color: #b6c0cd; margin: 10px 0 4px; }
+  select, input, textarea { width: 100%; box-sizing: border-box; background: #0e1218;
+    color: #e8eef5; border: 1px solid #384354; border-radius: 6px; padding: 7px; font: inherit; font-size: 12px; }
+  textarea { resize: vertical; min-height: 62px; }
+  input[type=file] { padding: 5px; font-size: 11px; }
+  .row { display: flex; gap: 6px; }
+  .row > * { flex: 1; }
+  button { background: #2563eb; color: #fff; border: 0; border-radius: 6px;
+    padding: 8px 10px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+  button.secondary { background: #394357; }
+  button.danger { background: #7f3030; }
+  button:hover { filter: brightness(1.15); }
+  button:disabled { opacity: .5; cursor: wait; }
+  .check { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12px; }
+  .check input { width: auto; }
+  .preview-wrap { overflow: auto; background: #0b0f14; border: 1px solid #2a3240;
+    border-radius: 8px; padding: 14px 14px 22px; display: flex; justify-content: center; }
+  .sheet-wrap { position: relative; display: inline-block; line-height: 0; }
+  #preview { background: #fff; outline: 1px solid #384354; image-rendering: pixelated; max-width: 100%; display: block; }
+  #overlay { position: absolute; left: 0; top: 0; max-width: 100%; cursor: move; }
+  .resize-handle { position: absolute; left: 0; right: 0; bottom: -9px; height: 16px;
+    cursor: ns-resize; display: flex; align-items: center; justify-content: center; }
+  .resize-handle::after { content: ''; width: 70px; height: 4px; border-radius: 2px; background: #2563eb; opacity: .85; }
+  code { display: block; word-break: break-all; color: #7dd3fc; font-size: 11px;
+    background: #0e1218; border-radius: 6px; padding: 8px; margin-top: 10px; }
+  #status { font-size: 12px; margin-top: 8px; min-height: 18px; }
+  .ok { color: #4ade80; } .err { color: #f87171; } .info { color: #fbbf24; }
+  .hint { font-size: 11px; color: #8b97a7; line-height: 1.5; margin-top: 8px; }
+  .iconbar { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .icon-btn { flex: 0 0 32px; width: 32px; height: 32px; padding: 0; margin: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: #394357; border: 1px solid #4a566a; color: #e8eef5;
+    font-size: 14px; line-height: 1; }
+  .icon-btn.active { background: #2563eb; border-color: #60a5fa; }
+  .icon-btn svg { width: 16px; height: 16px; }
+  .text-note { font-size: 11px; color: #8b97a7; line-height: 1.4; margin-top: 6px; }
+  details.advanced { margin-top: 12px; border-top: 1px solid #2a3240; padding-top: 6px; }
+  details.advanced summary { font-size: 12px; color: #9aa4b2; cursor: pointer; padding: 6px 0; }
+  .preview-wrap.dragover { outline: 2px dashed #60a5fa; outline-offset: -5px; background: #131c28; }
+</style>
+</head>
+<body>
+<h1>P50 Web Label Studio</h1>
+<div class="sub">Bilder per Drag &amp; Drop · Text mit Icon-Toolbar · Objekte direkt drehen/skalieren · Höhe durch Ziehen der Unterkante · Druck über Bluetooth LE.</div>
+
+<div class="grid">
+  <!-- LINKE SPALTE: Einstellungen -->
+  <div class="card">
+    <h2>Drucker &amp; Einstellungen</h2>
+    <button id="bleConnectBtn" class="secondary">Bluetooth verbinden</button>
+    <button id="bleRestoreBtn" class="secondary" accesskey="r">Wiederherstellen</button>
+    <button id="bleForgetBtn" class="secondary">Vergessen</button>
+    <button id="bleDisconnectBtn" class="secondary">Bluetooth trennen</button>
+    <div id="bleStatus" class="hint">Nicht verbunden.</div>
+
+    <label for="media">Papier</label>
+    <select id="media">
+      <option value="continuous">Endlos (57 mm)</option>
+      <option value="gap">Spalt / Etikett</option>
+    </select>
+
+    <div class="row">
+      <div><label for="widthMm">Breite mm</label><input id="widthMm" type="number" value="57" min="15" max="60"></div>
+      <div><label for="heightMm">Höhe mm</label><input id="heightMm" type="number" value="20" min="5" max="100"></div>
+    </div>
+
+    <div class="row">
+      <div><label for="density">Dichte</label><select id="density">
+        <option value="light">hell</option><option value="normal" selected>normal</option><option value="dark">dunkel</option>
+      </select></div>
+      <div><label for="copies">Kopien</label><input id="copies" type="number" value="1" min="1" max="20"></div>
+    </div>
+
+    <div class="check"><input id="invert" type="checkbox"><label for="invert" style="margin:0">Farben invertieren</label></div>
+
+    <button id="printBtn">Drucken</button>
+
+    <details class="advanced">
+      <summary>Erweiterte Optionen</summary>
+
+      <label for="protocol">Protokoll</label>
+      <select id="protocol">
+        <option value="yxq">YXQ id3 — P50 Bluetooth (empfohlen)</option>
+        <option value="legacy">Legacy — P50 v1 (10 FF FE 01)</option>
+        <option value="l11">L11 — 10 FF F1 02</option>
+        <option value="escpos">ESC/POS — nur USB</option>
+      </select>
+
+      <label for="printer">Warteschlange (USB-Fallback)</label>
+      <select id="printer"><option>Lade…</option></select>
+
+      <label for="compression">Raster-Kompression</label>
+      <select id="compression">
+        <option value="stream28">zlib 1 KiB – komprimiert (empfohlen)</option>
+        <option value="stream78">zlib 32 KiB – komprimiert</option>
+        <option value="raw28">zlib 1 KiB – unkomprimiert (alt)</option>
+      </select>
+
+      <div class="row">
+        <div><label for="feedDots">Vorschub</label><input id="feedDots" type="number" value="100" min="0" max="255"></div>
+      </div>
+
+      <div class="check"><input id="slowMode" type="checkbox"><label for="slowMode" style="margin:0">Langsam senden (100 ms/Paket)</label></div>
+
+      <button id="textTestBtn" class="secondary">ESC/POS Text-Test</button>
+      <button id="feedBtn" class="secondary">Nur Vorschub</button>
+    </details>
+  </div>
+
+  <!-- MITTE: VORSCHAU -->
+  <div class="card">
+    <h2>Vorschau (384 px = Druckkopfbreite)</h2>
+    <div class="preview-wrap">
+      <div class="sheet-wrap">
+        <canvas id="preview" width="384" height="160"></canvas>
+        <canvas id="overlay" width="384" height="160"></canvas>
+        <div id="bottomHandle" class="resize-handle" title="Unterkante ziehen = Höhe ändern"></div>
+      </div>
+    </div>
+    <div class="hint">Die <b>blaue Unterkante</b> nach unten ziehen ändert die Höhe. Die Breite bleibt bei 384 px, weil der Druckkopf 48 mm breit ist. Ausgewählte Objekte haben Eckgriffe zum Skalieren und einen Kreisgriff oben zum Drehen (mit <b>Umschalt</b> in 15°-Schritten).</div>
+    <code id="hex">Noch kein Job erzeugt.</code>
+    <div id="status"></div>
+  </div>
+
+  <!-- RECHTE SPALTE: BEARBEITUNGSTOOLS -->
+  <div class="card">
+    <h2>Bearbeitung</h2>
+
+    <label for="text">Textobjekt</label>
+    <textarea id="text">TEST</textarea>
+    <button id="drawTextBtn" class="secondary">Text hinzufügen</button>
+
+    <div class="iconbar" id="textToolbar">
+      <button class="icon-btn" data-style="font" data-value="mono" title="Monospace">M</button>
+      <button class="icon-btn" data-style="font" data-value="sans" title="Sans-serif">S</button>
+      <button class="icon-btn" data-style="font" data-value="serif" title="Serif">G</button>
+      <button class="icon-btn" data-style="sizeDown" title="Schrift kleiner">A−</button>
+      <button class="icon-btn" data-style="sizeUp" title="Schrift größer">A+</button>
+      <button class="icon-btn" data-style="align" data-value="left" title="Linksbündig">
+        <svg viewBox="0 0 16 16"><path d="M2 3h12M2 6h8M2 9h12M2 12h8" stroke="currentColor" stroke-width="1.5"/></svg>
+      </button>
+      <button class="icon-btn" data-style="align" data-value="center" title="Zentriert">
+        <svg viewBox="0 0 16 16"><path d="M2 3h12M4 6h8M2 9h12M4 12h8" stroke="currentColor" stroke-width="1.5"/></svg>
+      </button>
+      <button class="icon-btn" data-style="align" data-value="right" title="Rechtsbündig">
+        <svg viewBox="0 0 16 16"><path d="M2 3h12M6 6h8M2 9h12M6 12h8" stroke="currentColor" stroke-width="1.5"/></svg>
+      </button>
+      <button class="icon-btn" data-style="bold" title="Fett"><b>B</b></button>
+      <button class="icon-btn" data-style="italic" title="Kursiv"><i>I</i></button>
+      <button class="icon-btn" data-style="lineHeight" title="Zeilenhöhe wechseln">☰</button>
+    </div>
+    <div class="text-note">Wirkt auf das ausgewählte Textobjekt – sonst auf den nächsten Text.</div>
+
+    <label for="imageFile">Bild einfügen (PNG/JPG)</label>
+    <input id="imageFile" type="file" accept="image/*">
+    <div class="text-note">Bilder auch einfach in die Vorschau ziehen.</div>
+
+    <div class="row">
+      <button id="rotL">↺ 90°</button>
+      <button id="rotR">↻ 90°</button>
+    </div>
+    <div class="row">
+      <button id="scaleDown">− kleiner</button>
+      <button id="scaleUp">+ größer</button>
+    </div>
+    <button id="deleteBtn" class="secondary">Auswahl löschen</button>
+    <button id="undoBtn" class="secondary">Rückgängig</button>
+    <button id="testBtn" class="secondary">Testmuster laden</button>
+    <button id="fitBtn" class="secondary">Inhalt einpassen (Höhe)</button>
+    <button id="clearBtn" class="danger">Blatt leeren</button>
+
+    <div id="objStatus" class="hint">Noch keine Auswahl. Objekt anklicken, ziehen, an den Griffen drehen/skalieren.</div>
+    <div class="hint">Das Blatt startet immer weiß. Das Testmuster kann jederzeit geladen und mit „Blatt leeren“ wieder entfernt werden.</div>
+  </div>
+</div>
+
+<script>
+const W = 384;
+const $ = id => document.getElementById(id);
+
+if (location.protocol === 'file:') {
+  document.body.insertAdjacentHTML('afterbegin',
+    '<div style="background:#7a1f1f;color:#fff;padding:12px 16px;font:14px sans-serif">' +
+    '<b>Falsch geöffnet:</b> Bitte nicht die index.html direkt öffnen. ' +
+    'Starte <code>start.bat</code> und nutze ' +
+    '<a style="color:#ffe082" href="http://127.0.0.1:8765">http://127.0.0.1:8765</a>. ' +
+    'Nur dort funktionieren Bluetooth-Merkung, /compress und /printers.' +
+    '</div>');
+}
+const canvas = $('preview');
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
+const overlay = $('overlay');
+const octx = overlay.getContext('2d');
+
+const B = (...b) => Uint8Array.from(b);
+const be16 = v => B((v >> 8) & 255, v & 255);
+const le16 = v => B(v & 255, (v >> 8) & 255);
+const be32 = v => B((v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255);
+
+function cat(...parts) {
+  const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
+  let o = 0;
+  for (const p of parts) { out.set(p, o); o += p.length; }
+  return out;
+}
+
+/* ---------------- Editor ---------------- */
+let objects = [];
+let history = [];
+let selected = -1;
+let drag = null;
+let sheetDrag = null;
+const imageCache = new Map();
+
+function syncHeight() {
+  const h = Math.max(16, Math.round(parseFloat($('heightMm').value || 20) * 8));
+  if (canvas.height !== h) { canvas.height = h; overlay.height = h; }
+}
+
+function snapshot() {
+  history.push(JSON.stringify(objects));
+  if (history.length > 40) history.shift();
+}
+
+const FONT_STACKS = {
+  mono: '"Consolas", "Courier New", monospace',
+  sans: '"Segoe UI", Arial, sans-serif',
+  serif: 'Georgia, "Times New Roman", serif'
+};
+function fontOf(o) {
+  return `${o.italic ? 'italic ' : ''}${o.bold ? 'bold ' : ''}${o.size * (o.scale || 1)}px ` +
+    (FONT_STACKS[o.font || 'mono'] || FONT_STACKS.mono);
+}
+
+function baseBox(o) {
+  if (o.type === 'text') {
+    const size = o.size * (o.scale || 1);
+    const prev = ctx.font;
+    ctx.font = fontOf(o);
+    const lines = o.text.split('\n');
+    const w = Math.max(20, ...lines.map(l => ctx.measureText(l).width));
+    ctx.font = prev;
+    return { w, h: size * (o.lineHeight || 1.25) * lines.length };
+  }
+  if (o.type === 'image') return { w: o.w * (o.scale || 1), h: o.h * (o.scale || 1) };
+  if (o.type === 'test') return { w: W, h: canvas.height };
+  return { w: 40, h: 40 };
+}
+
+function selectionBox(o) {
+  const b = baseBox(o);
+  const a = (o.rot || 0) * Math.PI / 180;
+  const c = Math.abs(Math.cos(a)), s = Math.abs(Math.sin(a));
+  return { w: b.w * c + b.h * s, h: b.w * s + b.h * c };
+}
+
+function drawObject(o) {
+  ctx.save();
+  ctx.fillStyle = '#000000';
+  if (o.type === 'text') {
+    const box = baseBox(o);
+    ctx.font = fontOf(o);
+    const align = o.align || 'center';
+    ctx.textAlign = align;
+    ctx.textBaseline = 'middle';
+    const lines = o.text.split('\n');
+    const lh = box.h / lines.length;
+    const anchorX = align === 'left' ? -box.w / 2 : align === 'right' ? box.w / 2 : 0;
+    ctx.translate(o.x, o.y);
+    ctx.rotate((o.rot || 0) * Math.PI / 180);
+    let y = -(lines.length - 1) * lh / 2;
+    for (const line of lines) { ctx.fillText(line, anchorX, y); y += lh; }
+  } else if (o.type === 'image') {
+    const img = imageCache.get(o.src);
+    if (img) {
+      ctx.translate(o.x, o.y);
+      ctx.rotate((o.rot || 0) * Math.PI / 180);
+      ctx.drawImage(img, -o.w * (o.scale || 1) / 2, -o.h * (o.scale || 1) / 2,
+        o.w * (o.scale || 1), o.h * (o.scale || 1));
+    }
+  } else if (o.type === 'test') {
+    const h = canvas.height;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(4, 4, W - 8, h - 8);
+    for (let x = 8; x < W - 8; x += 16) ctx.fillRect(x, 10, 1, Math.floor(h * 0.18));
+    for (let x = 8; x < W - 8; x += 8) ctx.fillRect(x, h - 12, 1, (x % 80 === 0) ? 10 : 5);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = 'bold 34px Consolas, monospace';
+    ctx.fillText('P50 TEST', W / 2, Math.round(h * 0.44));
+    ctx.font = '16px Consolas, monospace';
+    ctx.fillText('48 mm / 203 dpi', W / 2, Math.round(h * 0.63));
+  }
+  ctx.restore();
+}
+
+function drawOverlay() {
+  octx.clearRect(0, 0, W, canvas.height);
+  if (selected < 0 || !objects[selected]) return;
+  const o = objects[selected];
+  const b = selectionBox(o);
+  const left = o.x - b.w / 2, top = o.y - b.h / 2;
+  octx.save();
+  octx.strokeStyle = '#2563eb';
+  octx.lineWidth = 1;
+  octx.setLineDash([4, 3]);
+  octx.strokeRect(left, top, b.w, b.h);
+  octx.setLineDash([]);
+  octx.fillStyle = '#2563eb';
+  for (const x of [left, left + b.w]) {
+    for (const y of [top, top + b.h]) octx.fillRect(x - 3.5, y - 3.5, 7, 7);
+  }
+  const ry = top - 26;
+  octx.beginPath();
+  octx.moveTo(o.x, top);
+  octx.lineTo(o.x, ry + 7);
+  octx.stroke();
+  octx.beginPath();
+  octx.arc(o.x, ry, 7, 0, Math.PI * 2);
+  octx.fill();
+  octx.restore();
+}
+
+function render() {
+  syncHeight();
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, canvas.height);
+  objects.forEach(drawObject);
+  drawOverlay();
+  syncTextStyle();
+  updateObjStatus();
+  refreshHex();
+}
+
+function updateObjStatus() {
+  if (selected < 0 || !objects[selected]) {
+    $('objStatus').textContent = 'Noch keine Auswahl. Objekt anklicken, ziehen, an den Griffen drehen/skalieren.';
+    return;
+  }
+  const o = objects[selected];
+  const label = o.type === 'text'
+    ? `Text „${o.text.replace(/\n/g, ' / ')}“ · ${o.font || 'mono'} ${o.size}px ${o.align || 'center'}` +
+      (o.bold ? ' fett' : '') + (o.italic ? ' kursiv' : '')
+    : o.type === 'image' ? 'Bild' : 'Testmuster';
+  $('objStatus').textContent = `${label} · Position ${Math.round(o.x)},${Math.round(o.y)}` +
+    ` · Größe ${Math.round((o.scale || 1) * 100)}%` +
+    (o.rot ? ` · Drehung ${Math.round(o.rot)}°` : '');
+}
+
+function pointerPos(e) {
+  const r = overlay.getBoundingClientRect();
+  return { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * canvas.height / r.height };
+}
+
+function hitObject(o, p) {
+  const b = selectionBox(o);
+  return Math.abs(p.x - o.x) <= b.w / 2 + 4 && Math.abs(p.y - o.y) <= b.h / 2 + 4;
+}
+
+function handleAt(p) {
+  if (selected < 0 || !objects[selected]) return null;
+  const o = objects[selected];
+  const b = selectionBox(o);
+  const left = o.x - b.w / 2, top = o.y - b.h / 2;
+  const near = (x, y) => Math.abs(p.x - x) <= 8 && Math.abs(p.y - y) <= 8;
+  if (near(o.x, top - 26)) return 'rotate';
+  for (const x of [left, left + b.w]) for (const y of [top, top + b.h]) if (near(x, y)) return 'scale';
+  return null;
+}
+
+overlay.addEventListener('mousedown', e => {
+  const p = pointerPos(e);
+  const handle = handleAt(p);
+  if (handle) {
+    const o = objects[selected];
+    drag = {
+      mode: handle, i: selected, startP: p,
+      startScale: o.scale || 1, startRot: o.rot || 0,
+      startD: Math.hypot(p.x - o.x, p.y - o.y) || 1,
+      startAngle: Math.atan2(p.y - o.y, p.x - o.x)
+    };
+    e.preventDefault();
+    return;
+  }
+  let hit = -1;
+  for (let i = objects.length - 1; i >= 0; i--) if (hitObject(objects[i], p)) { hit = i; break; }
+  selected = hit;
+  if (hit >= 0) drag = { mode: 'move', i: hit, dx: objects[hit].x - p.x, dy: objects[hit].y - p.y };
+  render();
+});
+
+window.addEventListener('mousemove', e => {
+  if (sheetDrag) {
+    const dots = Math.round(sheetDrag.startDots + (e.clientY - sheetDrag.startY) * sheetDrag.scale);
+    const mm = Math.max(5, Math.min(100, Math.round(dots / 8)));
+    if (parseInt($('heightMm').value, 10) !== mm) { $('heightMm').value = mm; clampObjects(); render(); }
+    return;
+  }
+  if (!drag) return;
+  const p = pointerPos(e);
+  const o = objects[drag.i];
+  if (!o) return;
+  if (drag.mode === 'move') {
+    o.x = p.x + drag.dx;
+    o.y = p.y + drag.dy;
+  } else if (drag.mode === 'scale') {
+    const d = Math.hypot(p.x - o.x, p.y - o.y);
+    o.scale = Math.max(0.1, Math.min(6, drag.startScale * d / drag.startD));
+  } else if (drag.mode === 'rotate') {
+    const a = Math.atan2(p.y - o.y, p.x - o.x);
+    let deg = drag.startRot + (a - drag.startAngle) * 180 / Math.PI;
+    if (e.shiftKey) deg = Math.round(deg / 15) * 15;
+    o.rot = deg;
+  }
+  render();
+});
+
+window.addEventListener('mouseup', () => { drag = null; sheetDrag = null; });
+
+$('bottomHandle').addEventListener('mousedown', e => {
+  e.preventDefault();
+  const r = canvas.getBoundingClientRect();
+  sheetDrag = { startY: e.clientY, startDots: canvas.height, scale: canvas.height / r.height };
+});
+
+function objectsBounds() {
+  if (!objects.length) return null;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const o of objects) {
+    const b = selectionBox(o);
+    minX = Math.min(minX, o.x - b.w / 2);
+    maxX = Math.max(maxX, o.x + b.w / 2);
+    minY = Math.min(minY, o.y - b.h / 2);
+    maxY = Math.max(maxY, o.y + b.h / 2);
+  }
+  return { minX, minY, maxX, maxY };
+}
+
+function fitHeightToContent() {
+  const b = objectsBounds();
+  if (!b) return;
+  snapshot();
+  const dy = b.minY < 8 ? 8 - b.minY : 0;
+  if (dy) for (const o of objects) o.y += dy;
+  const mm = Math.max(5, Math.min(100, Math.ceil((b.maxY + dy + 8) / 8)));
+  if (parseInt($('heightMm').value, 10) !== mm) $('heightMm').value = mm;
+  render();
+  status(`Höhe an Inhalt angepasst: ${mm} mm.`, 'ok');
+}
+
+function clampObjects() {
+  for (const o of objects) {
+    let b = selectionBox(o);
+    if (b.h > canvas.height - 6) {
+      const f = Math.max(0.1, (canvas.height - 8) / b.h);
+      o.scale = (o.scale || 1) * f;
+      b = selectionBox(o);
+    }
+    o.y = Math.max(b.h / 2 + 2, Math.min(canvas.height - b.h / 2 - 2, o.y));
+    o.x = Math.max(b.w / 2 + 2, Math.min(W - b.w / 2 - 2, o.x));
+  }
+}
+
+const TEXT_FIELDS = ['font', 'size', 'align', 'bold', 'italic', 'lineHeight'];
+let textStyle = { font: 'mono', size: 36, align: 'center', bold: false, italic: false, lineHeight: 1.25 };
+
+function syncTextStyle() {
+  const o = objects[selected];
+  if (o && o.type === 'text') {
+    for (const k of TEXT_FIELDS) if (o[k] !== undefined) textStyle[k] = o[k];
+  }
+  for (const btn of $('textToolbar').querySelectorAll('.icon-btn')) {
+    const key = btn.dataset.style, val = btn.dataset.value;
+    const active = (key === 'font' || key === 'align') ? textStyle[key] === val
+      : (key === 'bold' || key === 'italic') ? !!textStyle[key] : false;
+    btn.classList.toggle('active', active);
+    if (key === 'sizeUp') btn.title = `Schrift größer (${textStyle.size} px)`;
+    if (key === 'sizeDown') btn.title = `Schrift kleiner (${textStyle.size} px)`;
+    if (key === 'lineHeight') btn.title = `Zeilenhöhe ${Number(textStyle.lineHeight).toFixed(2)} – klick wechselt`;
+  }
+}
+
+function changeTextStyle(patch) {
+  Object.assign(textStyle, patch);
+  const o = objects[selected];
+  if (o && o.type === 'text') transformSelected(t => Object.assign(t, patch));
+  else { syncTextStyle(); render(); }
+}
+
+$('textToolbar').addEventListener('click', e => {
+  const btn = e.target.closest('.icon-btn');
+  if (!btn) return;
+  const key = btn.dataset.style;
+  if (key === 'font' || key === 'align') changeTextStyle({ [key]: btn.dataset.value });
+  else if (key === 'sizeUp') changeTextStyle({ size: Math.min(120, textStyle.size + 2) });
+  else if (key === 'sizeDown') changeTextStyle({ size: Math.max(8, textStyle.size - 2) });
+  else if (key === 'bold') changeTextStyle({ bold: !textStyle.bold });
+  else if (key === 'italic') changeTextStyle({ italic: !textStyle.italic });
+  else if (key === 'lineHeight') {
+    const steps = [1, 1.25, 1.5];
+    const i = steps.findIndex(s => Math.abs(s - textStyle.lineHeight) < 0.01);
+    changeTextStyle({ lineHeight: steps[(i + 1) % steps.length] });
+  }
+});
+
+function addText() {
+  snapshot();
+  objects.push({ type: 'text', x: W / 2, y: canvas.height / 2, text: $('text').value,
+    size: textStyle.size, font: textStyle.font, align: textStyle.align,
+    bold: textStyle.bold, italic: textStyle.italic, lineHeight: textStyle.lineHeight,
+    scale: 1, rot: 0 });
+  selected = objects.length - 1;
+  render();
+}
+
+function loadTest() {
+  snapshot();
+  objects = [{ type: 'test', x: W / 2, y: canvas.height / 2, scale: 1, rot: 0 }];
+  selected = 0;
+  render();
+}
+
+function transformSelected(fn) {
+  if (selected < 0 || !objects[selected]) return;
+  snapshot();
+  fn(objects[selected]);
+  render();
+}
+
+$('drawTextBtn').addEventListener('click', addText);
+$('testBtn').addEventListener('click', loadTest);
+$('fitBtn').addEventListener('click', fitHeightToContent);
+$('clearBtn').addEventListener('click', () => { snapshot(); objects = []; selected = -1; render(); });
+$('deleteBtn').addEventListener('click', () => {
+  if (selected < 0) return;
+  snapshot(); objects.splice(selected, 1); selected = -1; render();
+});
+$('undoBtn').addEventListener('click', () => {
+  if (!history.length) return;
+  objects = JSON.parse(history.pop()); selected = -1; render();
+});
+$('rotL').addEventListener('click', () => transformSelected(o => { o.rot = ((o.rot || 0) + 270) % 360; }));
+$('rotR').addEventListener('click', () => transformSelected(o => { o.rot = ((o.rot || 0) + 90) % 360; }));
+$('scaleUp').addEventListener('click', () => transformSelected(o => { o.scale = Math.min(6, (o.scale || 1) * 1.15); }));
+$('scaleDown').addEventListener('click', () => transformSelected(o => { o.scale = Math.max(0.1, (o.scale || 1) * 0.87); }));
+
+function addImageFile(file, at = null) {
+  if (!file || !file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      imageCache.set(reader.result, img);
+      const fit = Math.min(1, (W - 16) / img.width, (canvas.height - 16) / img.height);
+      objects.push({ type: 'image', x: at ? at.x : W / 2, y: at ? at.y : canvas.height / 2,
+        src: reader.result, w: img.width * fit, h: img.height * fit, scale: 1, rot: 0 });
+      selected = objects.length - 1;
+      clampObjects();
+      fitHeightToContent();
+      status(`Bild eingefügt: ${file.name}`, 'ok');
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+$('imageFile').addEventListener('change', e => {
+  addImageFile(e.target.files[0]);
+  e.target.value = '';
+});
+
+const previewWrap = document.querySelector('.preview-wrap');
+let dragDepth = 0;
+previewWrap.addEventListener('dragenter', e => {
+  e.preventDefault();
+  dragDepth++;
+  previewWrap.classList.add('dragover');
+});
+previewWrap.addEventListener('dragover', e => e.preventDefault());
+previewWrap.addEventListener('dragleave', e => {
+  e.preventDefault();
+  if (--dragDepth <= 0) { dragDepth = 0; previewWrap.classList.remove('dragover'); }
+});
+previewWrap.addEventListener('drop', e => {
+  e.preventDefault();
+  dragDepth = 0;
+  previewWrap.classList.remove('dragover');
+  const file = [...(e.dataTransfer.files || [])].find(f => f.type.startsWith('image/'));
+  if (file) addImageFile(file, pointerPos(e));
+  else status('Bitte eine Bilddatei in die Vorschau ziehen.', 'err');
+});
+
+/* ---------------- Bitmap & Protokoll ---------------- */
+function bitmap() {
+  const data = ctx.getImageData(0, 0, W, canvas.height).data;
+  const stride = W / 8;
+  const out = new Uint8Array(stride * canvas.height);
+  const inv = $('invert').checked;
+  for (let y = 0; y < canvas.height; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = (y * W + x) * 4;
+      const lum = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+      let dark = lum < 128;
+      if (inv) dark = !dark;
+      if (dark) out[y * stride + (x >> 3)] |= 0x80 >> (x & 7);
+    }
+  }
+  return out;
+}
+
+function adler32(data) {
+  let a = 1, b = 0;
+  for (let i = 0; i < data.length; i++) { a = (a + data[i]) % 65521; b = (b + a) % 65521; }
+  return ((b << 16) | a) >>> 0;
+}
+
+function zlibStored(data, cmf = 0x28) {
+  // Passend zum nativen Marklife-Wrapper: level 6 => FLEVEL 2 => 28 91.
+  const out = (cmf === 0x78) ? [0x78, 0x9C] : [0x28, 0x91];
+  const CHUNK = 65535;
+  for (let off = 0; off < data.length; off += CHUNK) {
+    const len = Math.min(CHUNK, data.length - off);
+    const last = (off + len === data.length) ? 1 : 0;
+    out.push(last, len & 255, (len >> 8) & 255, (~len) & 255, ((~len) >> 8) & 255);
+    for (let i = 0; i < len; i++) out.push(data[off + i]);
+  }
+  for (const byte of be32(adler32(data))) out.push(byte);
+  return Uint8Array.from(out);
+}
+
+async function compressRaster(data) {
+  const mode = $('compression').value;
+  if (mode === 'raw28') return zlibStored(data, 0x28);
+
+  // Der nativen Marklife-Bibliothek entsprechen: level 6, windowBits 10.
+  // Der lokale Server kann das exakt mit Python-zlib erzeugen.
+  if (mode === 'stream28') {
+    try {
+      const res = await fetch('/compress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dataHex: Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(''),
+          level: 6,
+          wbits: 10
+        })
+      });
+      if (res.ok) return new Uint8Array(await res.arrayBuffer());
+    } catch (_) {
+      // Fallback auf Browser-Compression, falls der Server nicht erreichbar ist.
+    }
+  }
+
+  if (typeof CompressionStream === 'undefined') return zlibStored(data, 0x28);
+  const format = (mode === 'stream78') ? 'deflate' : 'deflate-raw';
+  const stream = new Blob([data]).stream().pipeThrough(new CompressionStream(format));
+  const out = new Uint8Array(await new Response(stream).arrayBuffer());
+  // 'deflate' liefert bereits 78 9C + Adler32; 'deflate-raw' braucht unseren 1-KiB-Header.
+  return (format === 'deflate') ? out : cat(B(0x28, 0x91), out, be32(adler32(data)));
+}
+
+async function buildJob(rows, index = 0, printNum = 1, heightOverride = null, ejectDots = null) {
+  const h = heightOverride ?? canvas.height;
+  const proto = $('protocol').value;
+  const gap = $('media').value === 'gap';
+  const dens = $('density').value;
+  const feed = parseInt($('feedDots').value, 10) & 255;
+  // Auswurf erfolgt über zusaetzliche leere Rasterzeilen, nicht über 1B 4A:
+  // der 3-Byte-Feed wirkt hier nur als absolute Position und Repeat bringt
+  // nichts. 104 Punkte ≈ 13 mm: davon ~10 mm für den Auswurf, ~3 mm Rest.
+  const eject = ejectDots ?? 104;
+  const wBytes = W / 8;
+  let p = [];
+
+  if (proto === 'escpos') {
+    const d = { light: 5, normal: 8, dark: 12 }[dens];
+    p.push(B(0x1B, 0x40), new Uint8Array(6), B(0x1D, 0x4C, 0x00, 0x00),
+      B(0x1D, 0x57), le16(W), B(0x1B, 0x33, 0x00), B(0x1B, 0x4E, 0x07, d),
+      B(0x1D, 0x76, 0x30, 0x00), le16(wBytes), le16(h), rows, B(0x0C), B(0x1B, 0x4A, feed));
+  } else if (proto === 'yxq') {
+    // Exakte Reihenfolge aus P50VIOSProtocol.getData() (Protokoll-ID 3).
+    // Der App-Preview-Pfad nutzt paperType=1, index=0..printNum-1.
+    const paperType = gap ? 2 : 1;
+    // P50-Map: Gear 1 -> 03, Gear 3 -> 0E (App-Default), sonst -> 0A.
+    const d = { light: 3, normal: 14, dark: 14 }[dens];
+    const wake = new Uint8Array(6);
+    const enable = B(0x1F, 0xC0, 0x01, 0x00);
+    const forward100 = B(0x1B, 0x4A, 100, 0x00, 0x00);
+    const stop = B(0x1F, 0xC0, 0x01, 0x01);
+
+    // P50VIOSProtocol: der Typ-Switch wird nur bei index != 0 gesendet.
+    if (index !== 0) {
+      if (paperType === 4) p.push(B(0x1F, 0x80, 0x02, 0x40));
+      else if (paperType === 3) p.push(B(0x1F, 0x80, 0x02, 0x30));
+      else if (paperType === 2) p.push(B(0x1F, 0x80, 0x02, 0x20));
+    }
+    p.push(B(0x1F, 0x70, 0x02, d), wake);
+
+    p.push(enable);
+    // Nur bei paperType != 2 und index != 0: adjustPositionAuto(81).
+    if (index !== 0 && paperType !== 2) p.push(B(0x1F, 0x11, 0x51));
+    // P50VIOSProtocol: ForwardWalk(100) nur bei paperType == 3 vor dem Druck.
+    if (paperType === 3) p.push(forward100);
+
+    // Zusätzliche leere Zeilen nur beim letzten Job der Endlos-Papier-Variante.
+    let rasterRows = rows;
+    let rasterH = h;
+    if (paperType === 1 && index === printNum - 1 && eject > 0) {
+      rasterRows = cat(rows, new Uint8Array((W / 8) * eject));
+      rasterH = h + eject;
+    }
+
+    const z = await compressRaster(rasterRows);
+    p.push(B(0x1F, 0x10), be16(wBytes), be16(rasterH), be32(z.length), z);
+
+    // getPrinterLocation(32, 1) → 1F 12 20 01 (nicht 00!)
+    if (paperType !== 2) p.push(B(0x1F, 0x12, 0x20, 0x01));
+
+    // Der 3-Byte-Feed der App (Printer_ESC.feed). Nur am Ende des letzten
+    // Jobs, damit das gedruckte Label aus dem Drucker herauskommt.
+    // Die 5-Byte-Variante loesst Dauer-Vorschub aus, diese nicht.
+    if (index !== printNum - 1) {
+      p.push(stop);
+    } else if (paperType === 3) {
+      // Nur bei paperType == 3: ForwardWalk(100) vor dem Stop.
+      p.push(forward100, stop);
+    } else if (paperType === 4 || paperType === 2) {
+      p.push(stop, B(0x1F, 0x11, 0x50));
+    } else {
+      // paperType == 1 (endlos): nur Stop, kein ForwardWalk.
+      p.push(stop);
+    }
+  } else if (proto === 'l11') {
+    const d = { light: 1, normal: 2, dark: 3 }[dens];
+    p.push(B(0x1F, 0x70, 0x02, d), new Uint8Array(15), B(0x10, 0xFF, 0xF1, 0x02),
+      B(0x1D, 0x76, 0x30, 0x00), le16(wBytes), le16(h), rows,
+      gap ? B(0x1D, 0x0C) : B(0x1B, 0x4A, feed), B(0x10, 0xFF, 0xF1, 0x45));
+  } else {
+    p.push(B(0x10, 0xFF, 0xFE, 0x01), B(0x1D, 0x76, 0x30, 0x00), le16(wBytes), le16(h), rows,
+      gap ? B(0x1D, 0x0C) : B(0x1B, 0x4A, feed), B(0x10, 0xFF, 0xFE, 0x45));
+  }
+  return cat(...p);
+}
+
+async function buildFeed() {
+  const feed = parseInt($('feedDots').value, 10) & 255;
+  const proto = $('protocol').value;
+  const gap = $('media').value === 'gap';
+  if (proto === 'escpos') return cat(B(0x1B, 0x40), B(0x1B, 0x4A, feed), B(0x0C));
+  if (proto === 'yxq') {
+    // Die P50 verwirft reine Steuer-Jobs ohne Raster. Deshalb einen echten,
+    // leeren Druckjob in der Höhe des gewünschten Vorschubs erzeugen.
+    const h = Math.max(1, feed);
+    const rows = new Uint8Array((W / 8) * h);
+    return buildJob(rows, 0, 1, h, 0);
+  }
+  if (proto === 'l11') return cat(new Uint8Array(15), B(0x10, 0xFF, 0xF1, 0x02),
+    gap ? B(0x1D, 0x0C) : B(0x1B, 0x4A, feed), B(0x10, 0xFF, 0xF1, 0x45));
+  return cat(B(0x10, 0xFF, 0xFE, 0x01), gap ? B(0x1D, 0x0C) : B(0x1B, 0x4A, feed), B(0x10, 0xFF, 0xFE, 0x45));
+}
+
+function toHex(u8, max = 40) {
+  const part = Array.from(u8.slice(0, max)).map(b => b.toString(16).padStart(2, '0')).join(' ');
+  return part + (u8.length > max ? `  … (${u8.length} Bytes gesamt)` : '');
+}
+
+let hexSeq = 0;
+async function refreshHex() {
+  const seq = ++hexSeq;
+  try {
+    const job = await buildJob(bitmap());
+    if (seq !== hexSeq) return;
+    const packets = Math.ceil(job.length / 95);
+    const secs = (packets * ($('slowMode').checked ? 0.1 : 0.03)).toFixed(1);
+    $('hex').textContent = `Raster ${canvas.height} Punkte = ${(canvas.height / 8).toFixed(1)} mm · Job ${job.length} Bytes · ${packets} Pakete · ~${secs} s · ` + toHex(job);
+  } catch (e) {
+    $('hex').textContent = 'Fehler: ' + e.message;
+  }
+}
+
+function status(msg, kind = 'info') {
+  $('status').textContent = msg;
+  $('status').className = kind;
+}
+
+/* ---------------- Bluetooth LE ---------------- */
+let ble = null;
+let credits = 0;
+let bleChunk = 95;
+let creditWaiters = [];
+let creditEverReceived = false;
+let noCreditSince = 0;
+const BLE_SERVICE = '0000ff00-0000-1000-8000-00805f9b34fb';
+const BLE_TX = '0000ff02-0000-1000-8000-00805f9b34fb';
+const BLE_RX = '0000ff03-0000-1000-8000-00805f9b34fb';
+const BLE_STATUS = '0000ff01-0000-1000-8000-00805f9b34fb';
+const BLE_SAVED_ID = 'p50.ble.deviceId';
+const BLE_SAVED_NAME = 'p50.ble.deviceName';
+function bleHex(v) { return Array.from(v).map(b => b.toString(16).padStart(2, '0')).join(' '); }
+
+function rememberBle(device) {
+  try {
+    localStorage.setItem(BLE_SAVED_ID, device.id);
+    localStorage.setItem(BLE_SAVED_NAME, device.name || '');
+    console.log('BLE gemerkt:', device.id, device.name || 'P50');
+  } catch (e) {
+    console.log('BLE merken fehlgeschlagen:', e.message);
+  }
+}
+
+function forgetBle() {
+  try {
+    localStorage.removeItem(BLE_SAVED_ID);
+    localStorage.removeItem(BLE_SAVED_NAME);
+  } catch (_) {}
+  bleDevice = null;
+  bleInfo('Bluetooth-Merkung gelöscht.', 'info');
+}
+
+function bleInfo(msg, kind = 'info') {
+  $('bleStatus').textContent = msg;
+  $('bleStatus').className = 'hint ' + kind;
+}
+
+let bleDevice = null;
+
+async function attachBle(device) {
+  const server = await device.gatt.connect();
+  const svc = await server.getPrimaryService(BLE_SERVICE);
+  const tx = await svc.getCharacteristic(BLE_TX);
+  const rx = await svc.getCharacteristic(BLE_RX);
+  // Die App schaltet vor jedem Schreiben Notification auf der TX-Char an.
+  if (tx.properties.notify) {
+    try {
+      await tx.startNotifications();
+      tx.addEventListener('characteristicvaluechanged', e =>
+        console.log('BLE TX-Notify:', bleHex(new Uint8Array(e.target.value.buffer))));
+    } catch (_) {}
+  }
+  // FF01 ist der Status-/Fertig-Kanal der App (doPrint/getSendResult).
+  let statusCh = null;
+  try {
+    statusCh = await svc.getCharacteristic(BLE_STATUS);
+    await statusCh.startNotifications();
+    statusCh.addEventListener('characteristicvaluechanged', e =>
+      console.log('BLE FF01:', bleHex(new Uint8Array(e.target.value.buffer))));
+  } catch (_) { statusCh = null; }
+  await rx.startNotifications();
+  rx.addEventListener('characteristicvaluechanged', e => {
+    const v = new Uint8Array(e.target.value.buffer);
+    console.log('BLE FF03:', bleHex(v));
+    if (v.length === 3 && v[0] === 0x02) {
+      const mtu = v[1] | (v[2] << 8);
+      // P50/M57: BluetoothPort$6 setzt bei JEDEM Tick size=95 fuer P50_-Namen,
+      // unabhaengig von der gemeldeten MTU. Nicht uebernehmen!
+      bleInfo(`MTU ${mtu} – P50 behaelt ${bleChunk} Bytes/Paket`, 'ok');
+      return;
+    }
+    if (v.length >= 2 && v[0] === 0x01) {
+      // App-Logik: 01 04 setzt credit=4, jedes andere 01 xx addiert xx Credits.
+      credits = (v[1] === 4) ? 4 : credits + v[1];
+      creditEverReceived = true;
+      noCreditSince = 0;
+      creditWaiters.splice(0).forEach(entry => { clearTimeout(entry.timer); entry.resolve(); });
+    }
+  });
+  ble = { device, server, tx, rx };
+  credits = 0;
+  bleChunk = 95;
+  creditEverReceived = false;
+  noCreditSince = 0;
+  let saved = '';
+  try { if (localStorage.getItem(BLE_SAVED_ID) === device.id) saved = ' (gemerkt)'; } catch (_) {}
+  bleInfo('Verbunden: ' + (device.name || 'P50') + saved + ' — warte auf Flow-Control …', 'ok');
+}
+
+function watchBleDisconnect(device) {
+  device.addEventListener('gattserverdisconnected', () => {
+    ble = null; credits = 0; bleChunk = 95; creditEverReceived = false; noCreditSince = 0;
+    bleInfo('Bluetooth-Verbindung getrennt – wird automatisch erneut versucht.', 'warn');
+  });
+}
+
+async function connectBle(name = null) {
+  if (!navigator.bluetooth) throw new Error('Web Bluetooth wird von diesem Browser nicht unterstuetzt');
+  const options = name
+    ? { filters: [{ name }], optionalServices: [BLE_SERVICE] }
+    : { acceptAllDevices: true, optionalServices: [BLE_SERVICE] };
+  let device;
+  try {
+    device = await navigator.bluetooth.requestDevice(options);
+  } catch (e) {
+    // Falls der gefilterte Auswaehler das Geraet nicht zeigt: alle anbieten.
+    if (e.name === 'NotFoundError' && name) {
+      device = await navigator.bluetooth.requestDevice({
+        acceptAllDevices: true, optionalServices: [BLE_SERVICE]
+      });
+    } else throw e;
+  }
+  bleDevice = device;
+  watchBleDisconnect(device);
+  rememberBle(device);
+  await attachBle(device);
+}
+
+function withTimeout(promise, ms, msg) {
+  let t;
+  const timeout = new Promise((_, rej) => { t = setTimeout(() => rej(new Error(msg)), ms); });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(t));
+}
+
+// Wartet (falls moeglich) auf ein Advertising des Geraets, damit connect() nicht ins Leere laeuft.
+async function waitForAdvertisement(device, ms = 8000) {
+  if (!device.watchAdvertisements) return;
+  const ctrl = new AbortController();
+  try {
+    await withTimeout(new Promise(async (resolve, reject) => {
+      device.addEventListener('advertisementreceived', () => resolve(), { once: true });
+      try { await device.watchAdvertisements({ signal: ctrl.signal }); } catch (e) { reject(e); }
+    }), ms, 'Drucker advertist nicht');
+  } finally { ctrl.abort(); }
+}
+
+// Gespeichertes Geraet ueber die Berechtigungen von Chrome wiederfinden (ohne Dialog).
+async function findSavedDevice() {
+  if (!navigator.bluetooth || !navigator.bluetooth.getDevices) return null;
+  let id = null, name = '';
+  try { id = localStorage.getItem(BLE_SAVED_ID); name = localStorage.getItem(BLE_SAVED_NAME) || ''; } catch (_) {}
+  const devices = await navigator.bluetooth.getDevices();
+  console.log('BLE restore: bekannte Geraete =', devices.map(d => d.id + ' / ' + (d.name || '?')));
+  return devices.find(d => id && d.id === id) ||
+         devices.find(d => name && d.name === name) ||
+         null;
+}
+
+// Komplett lautlos: nie ein Dialog. Nur "Bluetooth verbinden" oeffnet den Chrome-Dialog.
+let restoreRunning = false;
+async function restoreBle(manual = false) {
+  if (restoreRunning) return false;
+  if (!navigator.bluetooth || !navigator.bluetooth.getDevices) {
+    bleInfo('getDevices() fehlt – Chrome aktualisieren bzw. chrome://flags/#enable-experimental-web-platform-features pruefen.', 'err');
+    return false;
+  }
+  restoreRunning = true;
+  try {
+    const device = await findSavedDevice();
+    if (!device) {
+      bleInfo('Kein erlaubtes Gerät bekannt – einmal „Bluetooth verbinden“ (danach geht es lautlos).', 'info');
+      return false;
+    }
+    const tries = manual ? 3 : 2;
+    for (let i = 1; i <= tries; i++) {
+      try {
+        bleInfo('Suche ' + (device.name || 'Drucker') + ' … (' + i + '/' + tries + ')', 'info');
+        await waitForAdvertisement(device, 10000).catch(e => console.log('BLE restore:', e.message));
+        bleDevice = device;
+        watchBleDisconnect(device);
+        await withTimeout(attachBle(device), 15000, 'Verbinden dauert zu lange');
+        rememberBle(device);
+        return true;
+      } catch (e) {
+        console.log('BLE restore Versuch', i, 'fehlgeschlagen:', e.message);
+        try { if (device.gatt.connected) device.gatt.disconnect(); } catch (_) {}
+        bleDevice = null;
+      }
+    }
+    bleInfo('Drucker nicht erreichbar – einschalten, Handy-App trennen, dann „Wiederherstellen“.', 'warn');
+    return false;
+  } catch (e) {
+    bleInfo('Wiederherstellen fehlgeschlagen: ' + e.message, 'err');
+    return false;
+  } finally {
+    restoreRunning = false;
+  }
+}
+
+async function reconnectBle() {
+  if (!bleDevice) return false;
+  try {
+    await attachBle(bleDevice);
+    return true;
+  } catch (e) {
+    bleInfo('BLE erneut verbinden fehlgeschlagen: ' + e.message, 'err');
+    return false;
+  }
+}
+
+async function waitCredit() {
+  const t0 = Date.now();
+  while (credits <= 0) {
+    if (!noCreditSince) noCreditSince = Date.now();
+    // BluetoothPort$6: nach 2 s ohne neue Credits einen Credit selbst freigeben.
+    // Sonst bleibt der zweite Job haengen, weil der Drucker nur einmal Credits sendet.
+    if (creditEverReceived && Date.now() - noCreditSince > 2000) {
+      credits = 1;
+      noCreditSince = Date.now();
+      bleInfo('Keine neuen Credits – 1 Credit nachgegeben (App-Fallback)', 'warn');
+      break;
+    }
+    if (Date.now() - t0 > 12000) throw new Error('Keine Flow-Control-Credits vom Drucker erhalten');
+    await new Promise(resolve => {
+      const entry = { resolve, timer: null };
+      entry.timer = setTimeout(() => {
+        creditWaiters = creditWaiters.filter(x => x !== entry);
+        resolve();
+      }, 250);
+      creditWaiters.push(entry);
+    });
+  }
+  // Erst nach erfolgreichem Schreiben wird ein Credit verbraucht (siehe writeBle).
+}
+
+async function writeBle(job) {
+  const delay = $('slowMode').checked ? 100 : 30;
+  // Wie BluetoothPort.write(): nur noCreditTime zuruecksetzen, credit NICHT.
+  noCreditSince = 0;
+  for (let off = 0; off < job.length; ) {
+    await waitCredit();
+    const len = Math.min(bleChunk, job.length - off);
+    // Android nutzt writeCharacteristic() mit Response; das sicherst die Zustellung.
+    await ble.tx.writeValueWithResponse(job.slice(off, off + len));
+    credits--;
+    off += len;
+    status(`Sende ${off} / ${job.length} Bytes …`);
+    if (off < job.length) await new Promise(r => setTimeout(r, delay));
+  }
+}
+
+// Der Stop-Befehl ist bereits Teil des Jobs (P50VIOSProtocol.getData()).
+// Ein zusaetzlicher Stop danach kann den gerade gestarteten Vorschub wieder
+// abbrechen, deshalb wird genau der Job gesendet und nichts mehr.
+async function sendBle(job) {
+  await writeBle(job);
+  // Der Drucker sendet FF01 "OK" (4f 4b), trennt danach aber manchmal die
+  // Verbindung. Die Pause gibt ihm Zeit, den Job sauber abzuschliessen.
+  await new Promise(r => setTimeout(r, 1000));
+}
+
+function dropWebBle() {
+  try {
+    if (ble && ble.device && ble.device.gatt && ble.device.gatt.connected) {
+      ble.device.gatt.disconnect();
+    }
+  } catch (_) {}
+  ble = null;
+  bleDevice = null;
+  credits = 0;
+}
+
+// Beim Schliessen/Neuladen die GATT-Verbindung aktiv freigeben, sonst
+//Advertist der P50 nicht mehr und der Server findet ihn nicht.
+window.addEventListener('beforeunload', dropWebBle);
+
+async function send(jobSource, copies = 1) {
+  const btn = $('printBtn');
+  btn.disabled = true;
+  try {
+    const jobs = [];
+    for (let i = 0; i < copies; i++) {
+      jobs.push(typeof jobSource === 'function' ? await jobSource(i, copies) : jobSource);
+    }
+    const total = jobs.reduce((n, j) => n + j.length, 0);
+    status(`Sende ${total} Bytes…`);
+
+    // 1) Bluetooth: bestehende Web-BLE-Verbindung nutzen.
+    if (!ble && bleDevice) await reconnectBle();
+    if (ble) {
+      try {
+        for (const job of jobs) await sendBle(job);
+        status(`OK – ${total} Bytes in ${jobs.length} Job(s) per Bluetooth gesendet.`, 'ok');
+        return;
+      } catch (e) {
+        console.log('Web-BLE fehlgeschlagen:', e.message);
+        status('Bluetooth-Senden fehlgeschlagen: ' + e.message, 'err');
+        return;
+      }
+    }
+
+    // 2) Letzter Ausweg: USB-Raw ueber die Warteschlange.
+    const payload = cat(...jobs);
+    const res = await fetch('/print', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        printer: $('printer').value,
+        dataHex: Array.from(payload).map(b => b.toString(16).padStart(2, '0')).join(''),
+        copies: 1
+      })
+    });
+    const out = await res.json();
+    if (!res.ok || !out.ok) throw new Error(out.error || res.statusText);
+    status(`OK – ${out.bytes} Bytes in ${jobs.length} Job(s) an „${out.printer}“ geschickt (USB).`, 'ok');
+  } catch (e) {
+    status('Fehler: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* ---------------- Events ---------------- */
+$('bleConnectBtn').addEventListener('click', async () => {
+  try { await connectBle(); } catch (e) { bleInfo('Fehler: ' + e.message, 'err'); }
+});
+$('bleRestoreBtn').addEventListener('click', () => restoreBle(true));
+$('bleForgetBtn').addEventListener('click', forgetBle);
+$('bleDisconnectBtn').addEventListener('click', () => {
+  dropWebBle();
+  bleInfo('Bluetooth getrennt.', 'info');
+});
+// Beim Start nur still versuchen (ohne Dialog, braucht kein Klick).
+restoreBle(false);
+$('printBtn').addEventListener('click', async () => {
+  const rows = bitmap();
+  const n = Math.max(1, Math.min(parseInt($('copies').value, 10), 20));
+  await send((i, total) => buildJob(rows, i, total), n);
+});
+$('textTestBtn').addEventListener('click', () => {
+  const text = new TextEncoder().encode('P50 ESC/POS TEST');
+  send(cat(B(0x1B, 0x40), new Uint8Array(6), text, B(0x0A, 0x0A, 0x0C, 0x1B, 0x4A, 100)));
+});
+$('feedBtn').addEventListener('click', async () => send(await buildFeed()));
+$('heightMm').addEventListener('change', () => { clampObjects(); render(); });
+['protocol', 'media', 'density', 'compression', 'invert', 'slowMode'].forEach(id => $(id).addEventListener('change', refreshHex));
+
+fetch('/printers').then(r => r.json()).then(names => {
+  const sel = $('printer');
+  sel.innerHTML = '';
+  for (const n of names) {
+    const o = document.createElement('option');
+    o.value = n; o.textContent = n;
+    sel.appendChild(o);
+  }
+}).catch(() => {});
+
+render();
+</script>
+</body>
+</html>
