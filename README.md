@@ -49,8 +49,22 @@ Ein einmaliges `Bluetooth verbinden` im Programm ist noetig, danach funktioniert
 ## Bedienung
 
 - Bilder einfach in die Vorschau ziehen (oder rechts die Datei auswaehlen).
-- Textobjekte ueber die Icon-Leiste rechts: Schriftart, Groesse, Ausrichtung,
-  Fett/Kursiv und Zeilenhöhe. Die Buttons wirken auf das ausgewählte Textobjekt,
-  sonst auf den naechsten Text.
-- Protokoll, USB-Warteschlange, Raster-Kompression, Vorschub, langsame Sendung
-  sowie ESC/POS-Text-Test und „Nur Vorschub“ stehen unter **Erweiterte Optionen**.
+- Bild-Griffe: Ecken aendern die Gesamtgroesse, Seitengriffe nur Breite oder
+  Hoehe. Mit gedrueckter Umschalt-Taste bleibt die gegenueberliegende Seite
+  feststehen.
+- Unter der Vorschau: **Bild leeren**, **Inhalt anpassen (Hoehe)** und
+  **Blatt leeren**.
+- Textobjekte ueber die Icon-Leiste rechts: Das Schriftart-Icon (Aa) oeffnet
+  eine Auswahl mit allen verfuegbaren Browser-/Systemschriften, ausserdem
+  Groesse, Ausrichtung, Fett/Kursiv und Zeilenhöhe. Die Buttons wirken auf das
+  ausgewählte Textobjekt, sonst auf den naechsten Text.
+- Bluetooth-Funktionen liegen im **Bluetooth-Manager**: Verbinden,
+  Wiederherstellen, Geraet loeschen, Trennen und ein Haken fuer automatische
+  Verbindung.
+- Protokoll, USB-Warteschlange, Raster-Kompression, Vorschub, langsame Sendung,
+  Debug-Bytecodes sowie ESC/POS-Text-Test und „Nur Vorschub“ stehen unter
+  **Erweiterte Optionen**. Die Debug-Bytecodes erscheinen nur, wenn dort der
+  Haken gesetzt ist.
+- Sprachumschaltung oben rechts in der Vorschau: 🇩🇪 DE / EN.
+- Der Bluetooth-Status („Bluetooth verbunden“ bzw. „Bereit“) erscheint auch
+  dann noch, wenn der Bluetooth-Manager minimiert ist.
